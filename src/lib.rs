@@ -7,6 +7,7 @@ use idl::{
     IdlTypeDefGenericConst, IdlTypeDefGenericType, IdlTypeDefStruct, IdlTypeDefined,
     IdlTypeGeneric, IdlTypeOption, IdlTypeSimple, IdlTypeVec,
 };
+use idl_compat::{Convert_idl, Detect_idl};
 use pyo3::{
     prelude::*,
     types::{PyString, PyTuple},
@@ -14,6 +15,8 @@ use pyo3::{
 };
 
 pub mod idl;
+pub mod idl_compat;
+pub mod spec;
 
 #[pymodule]
 fn anchorpy_idl(py: Python, m: &PyModule) -> PyResult<()> {
