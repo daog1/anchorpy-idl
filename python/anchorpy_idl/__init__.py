@@ -6,6 +6,8 @@ from anchorpy_idl.anchorpy_idl import (  # type: ignore
     IdlTypeArray,
     IdlTypeGeneric,
     IdlDefinedTypeArg,
+    IdlDefinedFieldsNamed,
+    IdlDefinedFieldsTuple,
     IdlConst,
     IdlField,
     IdlEnumVariant,

@@ -24,9 +24,9 @@ pub fn detect_idl_version(json: &Value) -> IdlVersion {
     }
 
     // v0.1 has 'address' field at root level
-    if json.get("address").is_some() {
-        return IdlVersion::V01;
-    }
+    //if json.get("address").is_some() {
+    //    return IdlVersion::V01;
+    //}
 
     // v0.0 has 'version' and 'name' at root level without 'metadata'
     if json.get("version").is_some() && json.get("name").is_some() && json.get("metadata").is_none()
@@ -37,9 +37,14 @@ pub fn detect_idl_version(json: &Value) -> IdlVersion {
     // Check for v0.0 specific account structure (is_mut, is_signer)
     if let Some(instructions) = json.get("instructions") {
         if let Some(instruction) = instructions.as_array().and_then(|arr| arr.first()) {
+            if instruction.get("discriminator").is_none() {
+                return IdlVersion::V00;
+            }
             if let Some(accounts) = instruction.get("accounts") {
                 if let Some(account) = accounts.as_array().and_then(|arr| arr.first()) {
-                    if account.get("is_mut").is_some() || account.get("is_signer").is_some() {
+                    if account.get("is_mut").is_some() || account.get("is_signer").is_some()
+                        |account.get("is_Mut").is_some() || account.get("is_Signer").is_some()
+                        | account.get("isMut").is_some() || account.get("isSigner").is_some() {
                         return IdlVersion::V00;
                     }
                 }
@@ -432,6 +437,20 @@ fn test_detect_v00_format_02() {
 #[test]
 fn test_detect_v00_format_03() {
     let json_str = include_str!("/Users/ttt/code/pysrc/anchorpy-dg/tests/idls/quarry_mine.json");
+    let res = parse_idl_with_compat(json_str);
+    print!("{:?}", res.unwrap());
+    //assert_eq!(version, IdlVersion::V00);
+}
+#[test]
+fn test_detect_v00_format_04() {
+    let json_str = include_str!("/Users/ttt/code/pysrc/anchorpy-dg/tests/idls/composite.json");
+    let res = parse_idl_with_compat(json_str);
+    print!("{:?}", res.unwrap());
+    //assert_eq!(version, IdlVersion::V00);
+}
+#[test]
+fn test_detect_v00_format_05() {
+    let json_str = include_str!("/Users/ttt/code/pysrc/anchorpy-dg/tests/idls/basic_0.json");
     let res = parse_idl_with_compat(json_str);
     print!("{:?}", res.unwrap());
     //assert_eq!(version, IdlVersion::V00);
