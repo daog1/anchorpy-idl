@@ -1594,16 +1594,16 @@ impl Idl {
         let json: serde_json::Result<serde_json::Value> = serde_json::from_str(raw);
         let json = handle_py_value_err(json)?;
         let version = detect_idl_version(&json);
-        let convertStr: Result<String, PyErr> = match version {
-            IdlVersion::V00 => {
+        let convert_str: Result<String, PyErr> = match version {
+            IdlVersion::V0 => {
                 let idl = parse_idl_with_compat(raw)
                     .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()));
                 serde_json::to_string_pretty(&idl.unwrap())
                     .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
             }
-            IdlVersion::V01 => Ok(raw.into()),
+            IdlVersion::V1 => Ok(raw.into()),
         };
-        Self::py_from_json(convertStr.unwrap().as_str())
+        Self::py_from_json(convert_str.unwrap().as_str())
         //Self::py_from_json(raw)
     }
 }

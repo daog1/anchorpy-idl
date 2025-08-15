@@ -7,7 +7,7 @@ use idl::{
     IdlTypeDefGenericConst, IdlTypeDefGenericType, IdlTypeDefStruct, IdlTypeDefined,
     IdlTypeGeneric, IdlTypeOption, IdlTypeSimple, IdlTypeVec,
 };
-use idl_compat::{Convert_idl, Detect_idl};
+//use idl_compat::{convert_idl, detect_idl};
 use pyo3::{
     prelude::*,
     types::{PyString, PyTuple},

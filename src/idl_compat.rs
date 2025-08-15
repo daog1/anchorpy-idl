@@ -1,5 +1,4 @@
-//use crate::idlv00 as IdlV00;
-use crate::spec::idlv00 as IV00;
+use crate::spec::idl_v0;
 use anchor_lang_idl_spec as t;
 use anchor_lang_idl_spec::Idl as IdlV01;
 use anyhow::{anyhow, Result};
@@ -11,15 +10,15 @@ use serde_json::Value;
 /// Enum representing different IDL versions
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum IdlVersion {
-    V00,
-    V01,
+    V0,
+    V1,
 }
 /// Detect the IDL version from JSON value
 pub fn detect_idl_version(json: &Value) -> IdlVersion {
     // v0.1 has 'metadata' field with 'spec' inside
     if let Some(metadata) = json.get("metadata") {
         if metadata.get("spec").is_some() {
-            return IdlVersion::V01;
+            return IdlVersion::V0;
         }
     }
 
@@ -31,21 +30,23 @@ pub fn detect_idl_version(json: &Value) -> IdlVersion {
     // v0.0 has 'version' and 'name' at root level without 'metadata'
     if json.get("version").is_some() && json.get("name").is_some() && json.get("metadata").is_none()
     {
-        return IdlVersion::V00;
+        return IdlVersion::V0;
     }
 
     // Check for v0.0 specific account structure (is_mut, is_signer)
     if let Some(instructions) = json.get("instructions") {
         if let Some(instruction) = instructions.as_array().and_then(|arr| arr.first()) {
             if instruction.get("discriminator").is_none() {
-                return IdlVersion::V00;
+                return IdlVersion::V0;
             }
             if let Some(accounts) = instruction.get("accounts") {
                 if let Some(account) = accounts.as_array().and_then(|arr| arr.first()) {
-                    if account.get("is_mut").is_some() || account.get("is_signer").is_some()
-                        |account.get("is_Mut").is_some() || account.get("is_Signer").is_some()
-                        | account.get("isMut").is_some() || account.get("isSigner").is_some() {
-                        return IdlVersion::V00;
+                    if account.get("is_mut").is_some()
+                        || account.get("is_signer").is_some() | account.get("is_Mut").is_some()
+                        || account.get("is_Signer").is_some() | account.get("isMut").is_some()
+                        || account.get("isSigner").is_some()
+                    {
+                        return IdlVersion::V0;
                     }
                 }
             }
@@ -53,13 +54,13 @@ pub fn detect_idl_version(json: &Value) -> IdlVersion {
     }
 
     // Default to v0.1 if uncertain
-    IdlVersion::V01
+    IdlVersion::V1
 }
 
-impl TryFrom<IV00::Idl> for t::Idl {
+impl TryFrom<idl_v0::Idl> for t::Idl {
     type Error = anyhow::Error;
 
-    fn try_from(idl: IV00::Idl) -> Result<Self> {
+    fn try_from(idl: idl_v0::Idl) -> Result<Self> {
         Ok(Self {
             address: {
                 let addr = idl
@@ -119,8 +120,8 @@ fn get_disc(prefix: &str, name: &str) -> Vec<u8> {
     hasher.finalize()[..8].into()
 }
 
-impl From<IV00::IdlInstruction> for t::IdlInstruction {
-    fn from(value: IV00::IdlInstruction) -> Self {
+impl From<idl_v0::IdlInstruction> for t::IdlInstruction {
+    fn from(value: idl_v0::IdlInstruction) -> Self {
         let name = value.name.to_snake_case();
         Self {
             discriminator: get_disc("global", &name),
@@ -133,8 +134,8 @@ impl From<IV00::IdlInstruction> for t::IdlInstruction {
     }
 }
 
-impl From<IV00::IdlTypeDefinition> for t::IdlAccount {
-    fn from(value: IV00::IdlTypeDefinition) -> Self {
+impl From<idl_v0::IdlTypeDefinition> for t::IdlAccount {
+    fn from(value: idl_v0::IdlTypeDefinition) -> Self {
         Self {
             discriminator: get_disc("account", &value.name),
             name: value.name,
@@ -142,8 +143,8 @@ impl From<IV00::IdlTypeDefinition> for t::IdlAccount {
     }
 }
 
-impl From<IV00::IdlEvent> for t::IdlEvent {
-    fn from(value: IV00::IdlEvent) -> Self {
+impl From<idl_v0::IdlEvent> for t::IdlEvent {
+    fn from(value: idl_v0::IdlEvent) -> Self {
         Self {
             discriminator: get_disc("event", &value.name),
             name: value.name,
@@ -151,8 +152,8 @@ impl From<IV00::IdlEvent> for t::IdlEvent {
     }
 }
 
-impl From<IV00::IdlErrorCode> for t::IdlErrorCode {
-    fn from(value: IV00::IdlErrorCode) -> Self {
+impl From<idl_v0::IdlErrorCode> for t::IdlErrorCode {
+    fn from(value: idl_v0::IdlErrorCode) -> Self {
         Self {
             name: value.name,
             code: value.code,
@@ -161,8 +162,8 @@ impl From<IV00::IdlErrorCode> for t::IdlErrorCode {
     }
 }
 
-impl From<IV00::IdlConst> for t::IdlConst {
-    fn from(value: IV00::IdlConst) -> Self {
+impl From<idl_v0::IdlConst> for t::IdlConst {
+    fn from(value: idl_v0::IdlConst) -> Self {
         Self {
             name: value.name,
             docs: Default::default(),
@@ -172,20 +173,20 @@ impl From<IV00::IdlConst> for t::IdlConst {
     }
 }
 
-impl From<IV00::IdlDefinedTypeArg> for t::IdlGenericArg {
-    fn from(value: IV00::IdlDefinedTypeArg) -> Self {
+impl From<idl_v0::IdlDefinedTypeArg> for t::IdlGenericArg {
+    fn from(value: idl_v0::IdlDefinedTypeArg) -> Self {
         match value {
-            IV00::IdlDefinedTypeArg::Type(ty) => Self::Type { ty: ty.into() },
-            IV00::IdlDefinedTypeArg::Value(value) => Self::Const { value },
-            IV00::IdlDefinedTypeArg::Generic(generic) => Self::Type {
+            idl_v0::IdlDefinedTypeArg::Type(ty) => Self::Type { ty: ty.into() },
+            idl_v0::IdlDefinedTypeArg::Value(value) => Self::Const { value },
+            idl_v0::IdlDefinedTypeArg::Generic(generic) => Self::Type {
                 ty: t::IdlType::Generic(generic),
             },
         }
     }
 }
 
-impl From<IV00::IdlTypeDefinition> for t::IdlTypeDef {
-    fn from(value: IV00::IdlTypeDefinition) -> Self {
+impl From<idl_v0::IdlTypeDefinition> for t::IdlTypeDef {
+    fn from(value: idl_v0::IdlTypeDefinition) -> Self {
         Self {
             name: value.name,
             docs: value.docs.unwrap_or_default(),
@@ -197,8 +198,8 @@ impl From<IV00::IdlTypeDefinition> for t::IdlTypeDef {
     }
 }
 
-impl From<IV00::IdlEvent> for t::IdlTypeDef {
-    fn from(value: IV00::IdlEvent) -> Self {
+impl From<idl_v0::IdlEvent> for t::IdlTypeDef {
+    fn from(value: idl_v0::IdlEvent) -> Self {
         Self {
             name: value.name,
             docs: Default::default(),
@@ -222,10 +223,10 @@ impl From<IV00::IdlEvent> for t::IdlTypeDef {
     }
 }
 
-impl From<IV00::IdlTypeDefinitionTy> for t::IdlTypeDefTy {
-    fn from(value: IV00::IdlTypeDefinitionTy) -> Self {
+impl From<idl_v0::IdlTypeDefinitionTy> for t::IdlTypeDefTy {
+    fn from(value: idl_v0::IdlTypeDefinitionTy) -> Self {
         match value {
-            IV00::IdlTypeDefinitionTy::Struct { fields } => Self::Struct {
+            idl_v0::IdlTypeDefinitionTy::Struct { fields } => Self::Struct {
                 fields: if fields.is_empty() {
                     None
                 } else {
@@ -234,31 +235,31 @@ impl From<IV00::IdlTypeDefinitionTy> for t::IdlTypeDefTy {
                     ))
                 },
             },
-            IV00::IdlTypeDefinitionTy::Enum { variants } => Self::Enum {
+            idl_v0::IdlTypeDefinitionTy::Enum { variants } => Self::Enum {
                 variants: variants
                     .into_iter()
                     .map(|variant| t::IdlEnumVariant {
                         name: variant.name,
                         fields: variant.fields.map(|fields| match fields {
-                            IV00::EnumFields::Named(fields) => t::IdlDefinedFields::Named(
+                            idl_v0::EnumFields::Named(fields) => t::IdlDefinedFields::Named(
                                 fields.into_iter().map(Into::into).collect(),
                             ),
-                            IV00::EnumFields::Tuple(tys) => t::IdlDefinedFields::Tuple(
+                            idl_v0::EnumFields::Tuple(tys) => t::IdlDefinedFields::Tuple(
                                 tys.into_iter().map(Into::into).collect(),
                             ),
                         }),
                     })
                     .collect(),
             },
-            IV00::IdlTypeDefinitionTy::Alias { value } => Self::Type {
+            idl_v0::IdlTypeDefinitionTy::Alias { value } => Self::Type {
                 alias: value.into(),
             },
         }
     }
 }
 
-impl From<IV00::IdlField> for t::IdlField {
-    fn from(value: IV00::IdlField) -> Self {
+impl From<idl_v0::IdlField> for t::IdlField {
+    fn from(value: idl_v0::IdlField) -> Self {
         Self {
             name: value.name.to_snake_case(),
             docs: value.docs.unwrap_or_default(),
@@ -267,24 +268,24 @@ impl From<IV00::IdlField> for t::IdlField {
     }
 }
 
-impl From<IV00::IdlType> for t::IdlType {
-    fn from(value: IV00::IdlType) -> Self {
+impl From<idl_v0::IdlType> for t::IdlType {
+    fn from(value: idl_v0::IdlType) -> Self {
         match value {
-            IV00::IdlType::PublicKey => t::IdlType::Pubkey,
-            IV00::IdlType::Defined(name) => t::IdlType::Defined {
+            idl_v0::IdlType::PublicKey => t::IdlType::Pubkey,
+            idl_v0::IdlType::Defined(name) => t::IdlType::Defined {
                 name,
                 generics: Default::default(),
             },
-            IV00::IdlType::DefinedWithTypeArgs { name, args } => t::IdlType::Defined {
+            idl_v0::IdlType::DefinedWithTypeArgs { name, args } => t::IdlType::Defined {
                 name,
                 generics: args.into_iter().map(Into::into).collect(),
             },
-            IV00::IdlType::Option(ty) => t::IdlType::Option(ty.into()),
-            IV00::IdlType::Vec(ty) => t::IdlType::Vec(ty.into()),
-            IV00::IdlType::Array(ty, len) => {
+            idl_v0::IdlType::Option(ty) => t::IdlType::Option(ty.into()),
+            idl_v0::IdlType::Vec(ty) => t::IdlType::Vec(ty.into()),
+            idl_v0::IdlType::Array(ty, len) => {
                 t::IdlType::Array(ty.into(), t::IdlArrayLen::Value(len))
             }
-            IV00::IdlType::GenericLenArray(ty, generic) => {
+            idl_v0::IdlType::GenericLenArray(ty, generic) => {
                 t::IdlType::Array(ty.into(), t::IdlArrayLen::Generic(generic))
             }
             _ => serde_json::to_value(value)
@@ -294,16 +295,16 @@ impl From<IV00::IdlType> for t::IdlType {
     }
 }
 
-impl From<Box<IV00::IdlType>> for Box<t::IdlType> {
-    fn from(value: Box<IV00::IdlType>) -> Self {
+impl From<Box<idl_v0::IdlType>> for Box<t::IdlType> {
+    fn from(value: Box<idl_v0::IdlType>) -> Self {
         Box::new((*value).into())
     }
 }
 
-impl From<IV00::IdlAccountItem> for t::IdlInstructionAccountItem {
-    fn from(value: IV00::IdlAccountItem) -> Self {
+impl From<idl_v0::IdlAccountItem> for t::IdlInstructionAccountItem {
+    fn from(value: idl_v0::IdlAccountItem) -> Self {
         match value {
-            IV00::IdlAccountItem::IdlAccount(acc) => Self::Single(t::IdlInstructionAccount {
+            idl_v0::IdlAccountItem::IdlAccount(acc) => Self::Single(t::IdlInstructionAccount {
                 name: acc.name.to_snake_case(),
                 docs: acc.docs.unwrap_or_default(),
                 writable: acc.is_mut,
@@ -326,27 +327,29 @@ impl From<IV00::IdlAccountItem> for t::IdlInstructionAccountItem {
                     .unwrap_or_default(),
                 relations: acc.relations,
             }),
-            IV00::IdlAccountItem::IdlAccounts(accs) => Self::Composite(t::IdlInstructionAccounts {
-                name: accs.name.to_snake_case(),
-                accounts: accs.accounts.into_iter().map(Into::into).collect(),
-            }),
+            idl_v0::IdlAccountItem::IdlAccounts(accs) => {
+                Self::Composite(t::IdlInstructionAccounts {
+                    name: accs.name.to_snake_case(),
+                    accounts: accs.accounts.into_iter().map(Into::into).collect(),
+                })
+            }
         }
     }
 }
 
-impl TryFrom<IV00::IdlSeed> for t::IdlSeed {
+impl TryFrom<idl_v0::IdlSeed> for t::IdlSeed {
     type Error = anyhow::Error;
 
-    fn try_from(value: IV00::IdlSeed) -> Result<Self> {
+    fn try_from(value: idl_v0::IdlSeed) -> Result<Self> {
         let seed = match value {
-            IV00::IdlSeed::Account(seed) => Self::Account(t::IdlSeedAccount {
+            idl_v0::IdlSeed::Account(seed) => Self::Account(t::IdlSeedAccount {
                 account: seed.account,
                 path: seed.path,
             }),
-            IV00::IdlSeed::Arg(seed) => Self::Arg(t::IdlSeedArg { path: seed.path }),
-            IV00::IdlSeed::Const(seed) => Self::Const(t::IdlSeedConst {
+            idl_v0::IdlSeed::Arg(seed) => Self::Arg(t::IdlSeedArg { path: seed.path }),
+            idl_v0::IdlSeed::Const(seed) => Self::Const(t::IdlSeedConst {
                 value: match seed.ty {
-                    IV00::IdlType::String => seed.value.to_string().as_bytes().into(),
+                    idl_v0::IdlType::String => seed.value.to_string().as_bytes().into(),
                     _ => return Err(anyhow!("Const seed conversion not supported")),
                 },
             }),
@@ -360,28 +363,25 @@ pub fn parse_idl_with_compat(json_str: &str) -> Result<IdlV01, Box<dyn std::erro
     let version = detect_idl_version(&json);
 
     match version {
-        IdlVersion::V00 => {
-            let value: IV00::Idl = serde_json::from_str(json_str).unwrap();
+        IdlVersion::V0 => {
+            let value: idl_v0::Idl = serde_json::from_str(json_str).unwrap();
             let obj = IdlV01::try_from(value);
             Ok(obj.unwrap())
-            //serde_json::from_value(value).map_err(Into::into)
-            //Ok(serde_json::from_value(value).map_err(Into::<IdlV01>::into)?)
-            //Ok(idl_v01)
         }
-        IdlVersion::V01 => {
+        IdlVersion::V1 => {
             let idl_v01: IdlV01 = serde_json::from_value(json)?;
             Ok(idl_v01)
         }
     }
 }
 #[pyfunction]
-pub fn Convert_idl(json_str: &str) -> PyResult<String> {
+pub fn convert_idl(json_str: &str) -> PyResult<String> {
     let idl = parse_idl_with_compat(json_str)
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()));
     Ok(serde_json::to_string_pretty(&idl.unwrap()).unwrap())
 }
 #[pyfunction]
-pub fn Detect_idl(json_str: &str) -> PyResult<i32> {
+pub fn detect_idl(json_str: &str) -> PyResult<i32> {
     let json: Value = serde_json::from_str(json_str).unwrap();
     let version = detect_idl_version(&json);
     Ok(version as i32)
@@ -434,118 +434,3 @@ fn test_detect_v00_format_02() {
     print!("{:?}", res.unwrap());
     //assert_eq!(version, IdlVersion::V00);
 }
-#[test]
-fn test_detect_v00_format_03() {
-    let json_str = include_str!("/Users/ttt/code/pysrc/anchorpy-dg/tests/idls/quarry_mine.json");
-    let res = parse_idl_with_compat(json_str);
-    print!("{:?}", res.unwrap());
-    //assert_eq!(version, IdlVersion::V00);
-}
-#[test]
-fn test_detect_v00_format_04() {
-    let json_str = include_str!("/Users/ttt/code/pysrc/anchorpy-dg/tests/idls/composite.json");
-    let res = parse_idl_with_compat(json_str);
-    print!("{:?}", res.unwrap());
-    //assert_eq!(version, IdlVersion::V00);
-}
-#[test]
-fn test_detect_v00_format_05() {
-    let json_str = include_str!("/Users/ttt/code/pysrc/anchorpy-dg/tests/idls/basic_0.json");
-    let res = parse_idl_with_compat(json_str);
-    print!("{:?}", res.unwrap());
-    //assert_eq!(version, IdlVersion::V00);
-}
-
-/*/// Parse IDL from JSON string with automatic version detection and conversion
-pub fn parse_idl_with_compat(json_str: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let json: Value = serde_json::from_str(json_str)?;
-    let version = detect_idl_version(&json);
-
-    match version {
-        IdlVersion::V00 => {
-            let idl_v00: IdlV00 = serde_json::from_value(json)?;
-            let idl_v01 = convert_v00_to_v01(idl_v00)?;
-            Ok(serde_json::to_string_pretty(&idl_v01).unwrap())
-        }
-        IdlVersion::V01 => {
-            //let idl_v01: IdlV01 = serde_json::from_value(json)?;
-            Ok(json_str.to_string())
-        }
-    }
-}
-#[pyfunction]
-pub fn py_parse_idl_with_compat(json_str: &str) -> PyResult<String> {
-    parse_idl_with_compat(json_str)
-        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-
-    #[test]
-    fn test_detect_v00_format() {
-        let v00_json = json!({
-            "version": "0.1.0",
-            "name": "test_program",
-            "instructions": [
-                {
-                    "name": "initialize",
-                    "accounts": [
-                        {
-                            "name": "authority",
-                            "isMut": false,
-                            "isSigner": true
-                        }
-                    ],
-                    "args": []
-                }
-            ],
-            "accounts": [],
-            "types": []
-        });
-
-        assert_eq!(detect_idl_version(&v00_json), IdlVersion::V00);
-    }
-
-    #[test]
-    fn test_detect_v01_format() {
-        let v01_json = json!({
-            "address": "11111111111111111111111111111111",
-            "metadata": {
-                "name": "test_program",
-                "version": "0.1.0",
-                "spec": "0.1.0"
-            },
-            "instructions": [],
-            "accounts": [],
-            "events": [],
-            "errors": [],
-            "types": [],
-            "constants": []
-        });
-
-        assert_eq!(detect_idl_version(&v01_json), IdlVersion::V01);
-    }
-
-    #[test]
-    fn test_convert_simple_v00_to_v01() {
-        let v00_idl = IdlV00 {
-            version: "0.1.0".to_string(),
-            name: "test_program".to_string(),
-            instructions: vec![],
-            accounts: vec![],
-            types: vec![],
-            events: None,
-            errors: None,
-            metadata: None,
-        };
-
-        let result = convert_v00_to_v01(v00_idl).unwrap();
-        assert_eq!(result.metadata.name, "test_program");
-        assert_eq!(result.metadata.version, "0.1.0");
-        assert_eq!(result.metadata.spec, "0.1.0");
-    }
-}
-*/
