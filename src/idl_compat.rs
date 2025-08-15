@@ -68,9 +68,6 @@ impl TryFrom<idl_v0::Idl> for t::Idl {
                     .as_ref()
                     .and_then(|m| m.get("address"))
                     .and_then(|a| a.as_str());
-                if addr.is_none() {
-                    eprintln!("Warning: Program id missing in `idl.metadata.address` field");
-                }
                 addr.unwrap_or("").into()
             },
             metadata: t::IdlMetadata {
